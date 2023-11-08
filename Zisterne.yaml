@@ -1,0 +1,79 @@
+esphome:
+  name: zisterne
+  platform: ESP8266
+  board: d1_mini
+  
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+#
+# Achtung: Für Offlinekalender muss der API-Reboot auf 0s gesetzt werden, da die Tonne sonst alle 15 Minuten neu startet.
+#
+api:
+  password: ""
+ #  reboot_timeout: 0s  # only enable this when creating an offline Wastebin
+
+ota:
+  password: ""
+
+wifi:
+  ssid: !secret SSssid
+#  for captive-portal remove password
+  password: !secret SSpassword
+  ap:
+    ssid: "Luna Fallback Hotspot"
+    password: "xyz12345"
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+captive_portal:
+#  keep_user_credentials: true  # option nicht aktiv.
+
+# i2c Bus auf D1 und D2 konfigurieren
+i2c:
+  id: bus_a
+  sda: D2
+  scl: D1
+  scan: True
+
+# ADC einrichten, ADDR-Pin ist auf GND gelegt, daher Adresse 0x48
+ads1115:
+  - address: 0x48
+    id: ads1115_48
+
+# ADC Kanal A0 zur Messwerterfassung 
+sensor:
+  - platform: ads1115
+    multiplexer: 'A0_GND'
+    gain: 4.096
+    name: "Wasserstand Zisterne cm"
+    id: levelraw
+    update_interval: 2s
+    unit_of_measurement: cm
+    accuracy_decimals: 1
+    icon: "mdi:car-coolant-level"
+# Messwerte glätten:
+    filters:
+      - sliding_window_moving_average:
+          window_size: 20
+          send_every: 20
+# Spannungen nach Messreihe in Füllhöhe umrechnen          
+      - calibrate_linear:
+          - 0.0 -> 0.0
+          - 3.3 -> 190.0
+
+# Füllmenge nach Füllstandskurve berechnen
+
+  - platform: template
+    name: "Zisterne Liter"
+    lambda: |-
+      return id(levelraw).state;
+    
+    filters:
+      - calibrate_linear:
+          - 4 -> 80
+          - 190 -> 5000
+
+    unit_of_measurement: l
+    accuracy_decimals: 0
+
