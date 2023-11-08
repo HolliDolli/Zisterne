@@ -22,8 +22,8 @@ wifi:
 #  for captive-portal remove password
   password: !secret SSpassword
   ap:
-    ssid: "Luna Fallback Hotspot"
-    password: "xyz12345"
+    ssid: !secret FBssid
+    password: !secret FBpassword
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
 captive_portal:
